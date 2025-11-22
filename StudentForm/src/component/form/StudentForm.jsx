@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSelector, useDispatch } from "react-redux";
-import { addStudentRegister } from "./../slice";
+import { addStudentRegister, deleteStudent, editStudent } from "./../slice";
 
 const StudentForm = () => {
     // Đẩy dữ liệu lên store
@@ -19,7 +19,6 @@ const StudentForm = () => {
         phone: "",
         email: ""
     });
-    console.log(userRegister);
 
     // Tạo một object về lỗi
     const [error, setError] = useState({
@@ -31,6 +30,41 @@ const StudentForm = () => {
 
     // Tạo một object về hợp lệ valid
     const [valid, setValid] = useState(true);
+
+    // State để theo dõi sinh viên đang được chỉnh sửa
+    const [editingIndex, setEditingIndex] = useState(null);
+
+    // Sử dụng useEffect để reset form khi không có sinh viên nào được chỉnh sửa
+    useEffect(() => {
+        if (editingIndex === null) {
+            setUserRegister({ studentId: "", fullName: "", phone: "", email: "" });
+            setError({ studentId: "", fullName: "", phone: "", email: "" });
+        }
+    }, [editingIndex]);
+
+    // Sử dụng useMemo để tính toán số lượng sinh viên
+    const studentCount = useMemo(() => {
+        return dataStudents.length;
+    }, [dataStudents]);
+
+    // Sử dụng useCallback cho hàm xóa sinh viên
+    const handleDelete = useCallback((index) => {
+        dispatch(deleteStudent(index));
+    }, [dispatch]);
+
+    // Sử dụng useCallback cho hàm chỉnh sửa sinh viên
+    const handleEdit = useCallback((student, index) => {
+        setUserRegister(student);
+        setEditingIndex(index);
+        setError({ studentId: "", fullName: "", phone: "", email: "" });
+    }, []);
+
+    // Sử dụng useCallback cho hàm hủy chỉnh sửa
+    const handleCancelEdit = useCallback(() => {
+        setEditingIndex(null);
+        setUserRegister({ studentId: "", fullName: "", phone: "", email: "" });
+        setError({ studentId: "", fullName: "", phone: "", email: "" });
+    }, []);
 
     const checkValidForm = (newUserRegister, newError) => {
         // Kiểm tra xem có trường nào rỗng không
@@ -115,7 +149,8 @@ const StudentForm = () => {
         checkValidForm(newUserRegister, newError)
     };
 
-    const handleSubmit = (event) => {
+    // Sử dụng useCallback cho hàm submit
+    const handleSubmit = useCallback((event) => {
         event.preventDefault();
 
         let newError = {};
@@ -140,13 +175,20 @@ const StudentForm = () => {
 
         if (hasEmpty) return;
 
-        dispatch(addStudentRegister(userRegister));
+        if (editingIndex !== null) {
+            // Cập nhật sinh viên
+            dispatch(editStudent({ index: editingIndex, updatedStudent: userRegister }));
+            setEditingIndex(null);
+        } else {
+            // Thêm sinh viên mới
+            dispatch(addStudentRegister(userRegister));
+        }
 
         // Reset form sau khi submit
         setUserRegister({ studentId: "", fullName: "", phone: "", email: "" });
         setError({ studentId: "", fullName: "", phone: "", email: "" });
         setValid(false);
-    };
+    }, [userRegister, editingIndex, dispatch]);
 
 
     return (
@@ -206,10 +248,19 @@ const StudentForm = () => {
                                         />
                                         <p className="text-red-500 text-sm mt-1">{error.email} </p>
                                     </div>
-                                    <div className="text-center">
+                                    <div className="text-center flex gap-4 justify-center">
                                         <button type="submit" className="px-10 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg hover:shadow-xl transition-all cursor-pointer">
-                                            Thêm sinh viên
+                                            {editingIndex !== null ? 'Cập nhật sinh viên' : 'Thêm sinh viên'}
                                         </button>
+                                        {editingIndex !== null && (
+                                            <button 
+                                                type="button" 
+                                                onClick={handleCancelEdit}
+                                                className="px-10 py-3 bg-gray-500 text-white font-bold rounded-xl hover:bg-gray-600 shadow-lg hover:shadow-xl transition-all cursor-pointer"
+                                            >
+                                                Hủy
+                                            </button>
+                                        )}
                                     </div>
                                 </form>
                             </div>
@@ -225,6 +276,7 @@ const StudentForm = () => {
                                         <th className="px-6 py-4 text-left text-gray-200 font-semibold">Họ và Tên</th>
                                         <th className="px-6 py-4 text-left text-gray-200 font-semibold">Số điện thoại</th>
                                         <th className="px-6 py-4 text-left text-gray-200 font-semibold">Email</th>
+                                        <th className="px-6 py-4 text-left text-gray-200 font-semibold">Hành động</th>
                                     </tr>
                                 </thead>
 
@@ -235,6 +287,28 @@ const StudentForm = () => {
                                             <td className="px-6 py-4">{student.fullName}</td>
                                             <td className="px-6 py-4">{student.phone}</td>
                                             <td className="px-6 py-4">{student.email}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleEdit(student, index)}
+                                                        className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                        Sửa
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(index)}
+                                                        className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                        Xóa
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
