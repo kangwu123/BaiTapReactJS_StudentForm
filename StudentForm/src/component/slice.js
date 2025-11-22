@@ -3,7 +3,32 @@ import { createSlice } from "@reduxjs/toolkit";
 const studentSlice = createSlice({
   name: "studentRegister",
   initialState: {
-    students: [],
+    students: [
+      {
+        studentId: "SV001",
+        fullName: "Vũ Gia Khang",
+        phone: "0768957156",
+        email: "khangvu250296@gmail.com"
+      },
+      {
+        studentId: "SV002", 
+        fullName: "Trần Thùy Linh",
+        phone: "0352678410",
+        email: "thuylinhtran@gmail.com"
+      },
+      {
+        studentId: "SV003",
+        fullName: "Nguyễn Minh Hằng",
+        phone: "0335267806",
+        email: "levanc@gmail.com"
+      },
+      {
+        studentId: "SV004",
+        fullName: "Đinh Tuấn Khải",
+        phone: "0891465021",
+        email: "tuankhai@gmail.com"
+      }
+    ],
   },
   reducers: {
     addStudentRegister: (state, action) => {
